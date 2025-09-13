@@ -29,8 +29,22 @@ const Input: FunctionComponent<
 const SettingsForm: FunctionComponent<{
   lapTimeInitial: number;
   onSubmit: (formData: { lapTime: number }) => void;
-}> = ({ lapTimeInitial, onSubmit }) => {
+  onEscape?: () => void;
+}> = ({ lapTimeInitial, onSubmit, onEscape }) => {
   const [lapTime, setLapTime] = useState(lapTimeInitial);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onEscape();
+      }
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+    };
+  }, []);
 
   return (
     <form
@@ -146,7 +160,11 @@ function App() {
       {shouldShowSettings && (
         <div className="w-1/2 max-w-[400px] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-amber-100 rounded-lg bg-gray-800 p-4">
           <div className="text-center">Settings</div>
-          <SettingsForm onSubmit={onSubmit} lapTimeInitial={lapTime} />
+          <SettingsForm
+            onEscape={() => setShouldShowSettings(false)}
+            onSubmit={onSubmit}
+            lapTimeInitial={lapTime}
+          />
         </div>
       )}
     </div>
