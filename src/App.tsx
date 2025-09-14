@@ -1,4 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  type FunctionComponent,
+  type ComponentProps,
+  useCallback,
+} from "react";
 import cn from "classnames";
 import "./App.css";
 
@@ -36,9 +43,9 @@ const [absPreset] = presets;
 
 const SettingsForm: FunctionComponent<{
   lapTimeInitial: number;
-  overallTimeIntial: number;
+  overallTimeInitial: number;
   onSubmit: (formData: { lapTime: number; overallTime: number }) => void;
-  onClose?: () => void;
+  onClose: () => void;
 }> = ({ lapTimeInitial, onSubmit, onClose, overallTimeInitial }) => {
   const [lapTime, setLapTime] = useState(lapTimeInitial);
   const [overallTime, setOverallTime] = useState(overallTimeInitial);
@@ -54,7 +61,7 @@ const SettingsForm: FunctionComponent<{
     return () => {
       document.removeEventListener("keydown", handler);
     };
-  }, []);
+  }, [onClose]);
 
   return (
     <form
@@ -66,7 +73,6 @@ const SettingsForm: FunctionComponent<{
       <div className="flex flex-col gap-4">
         <select
           value=""
-          label="Presets"
           onChange={(e) => {
             const preset = presets.find((p) => p.label === e.target.value);
             if (preset) {
@@ -121,7 +127,7 @@ const SettingsForm: FunctionComponent<{
 };
 
 function App() {
-  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   const [hasStarted, setHasStarted] = useState(false);
   const [shouldShowSettings, setShouldShowSettings] = useState(false);
@@ -166,7 +172,7 @@ function App() {
     setHasStarted(!hasStarted);
   };
 
-  const onSubmit: SettingsForm["props"]["onSubmit"] = ({
+  const onSubmit: ComponentProps<typeof SettingsForm>["onSubmit"] = ({
     lapTime,
     overallTime,
   }) => {
@@ -178,6 +184,8 @@ function App() {
       setHasStarted(false);
     }
   };
+
+  const onClose = useCallback(() => setShouldShowSettings(false), []);
 
   return (
     <div className="w-screen h-screen bg-gray-900 text-green-400 p-4 relative flex flex-col">
@@ -216,7 +224,7 @@ function App() {
           <div className="text-center">Settings</div>
           <div className="mt-4">
             <SettingsForm
-              onClose={() => setShouldShowSettings(false)}
+              onClose={onClose}
               onSubmit={onSubmit}
               overallTimeInitial={overallTime}
               lapTimeInitial={lapTime}
