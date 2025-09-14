@@ -26,17 +26,27 @@ const Input: FunctionComponent<
   />
 );
 
+const presets = [
+  { lapTime: 40, overallTime: 60, label: "40 work 20 rest" },
+  { lapTime: 60, overallTime: 60, label: "60 work" },
+  { lapTime: 90, overallTime: 90, label: "90 work" },
+];
+
+const [absPreset] = presets;
+
 const SettingsForm: FunctionComponent<{
   lapTimeInitial: number;
-  onSubmit: (formData: { lapTime: number }) => void;
-  onEscape?: () => void;
-}> = ({ lapTimeInitial, onSubmit, onEscape }) => {
+  overallTimeIntial: number;
+  onSubmit: (formData: { lapTime: number; overallTime: number }) => void;
+  onClose?: () => void;
+}> = ({ lapTimeInitial, onSubmit, onClose, overallTimeInitial }) => {
   const [lapTime, setLapTime] = useState(lapTimeInitial);
+  const [overallTime, setOverallTime] = useState(overallTimeInitial);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onEscape();
+        onClose();
       }
     };
 
@@ -50,23 +60,61 @@ const SettingsForm: FunctionComponent<{
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ lapTime });
+        onSubmit({ lapTime, overallTime });
       }}
     >
-      <div>
-        <label>Lap time:</label>
-        <Input
-          onChange={(e) => setLapTime(Number(e.target.value))}
-          value={lapTime}
-          type="number"
-          min={0}
-          max={60}
-        />
+      <div className="flex flex-col gap-4">
+        <select
+          value=""
+          label="Presets"
+          onChange={(e) => {
+            const preset = presets.find((p) => p.label === e.target.value);
+            if (preset) {
+              onSubmit({
+                lapTime: preset.lapTime,
+                overallTime: preset.overallTime,
+              });
+            }
+          }}
+        >
+          <option value="" disabled>
+            -- Select a preset --
+          </option>
+          {presets.map((preset) => {
+            return (
+              <option key={preset.label} value={preset.label}>
+                {preset.label}
+              </option>
+            );
+          })}
+        </select>
+        <div>
+          <label>Overall time:</label>
+          <Input
+            onChange={(e) => setOverallTime(Number(e.target.value))}
+            value={overallTime}
+            type="number"
+            min={0}
+          />
+        </div>
+        <div>
+          <label>Lap time:</label>
+          <Input
+            onChange={(e) => setLapTime(Number(e.target.value))}
+            value={lapTime}
+            type="number"
+            min={0}
+            max={overallTime}
+          />
+        </div>
       </div>
       <div className="flex mt-6">
-        <Button type="submit" className="ml-auto">
-          Apply
-        </Button>
+        <div className="ml-auto flex gap-4">
+          <Button onClick={onClose} type="button">
+            Close
+          </Button>
+          <Button type="submit">Apply</Button>
+        </div>
       </div>
     </form>
   );
@@ -77,25 +125,26 @@ function App() {
 
   const [hasStarted, setHasStarted] = useState(false);
   const [shouldShowSettings, setShouldShowSettings] = useState(false);
-  const [lapTime, setLapTime] = useState(3);
+  const [overallTime, setOverallTime] = useState(absPreset.overallTime);
+  const [lapTime, setLapTime] = useState(absPreset.lapTime);
   const [seconds, setSeconds] = useState(0);
 
-  const restSecs = 60 - lapTime;
+  const restSecs = overallTime - lapTime;
   const restSecsPassed = Math.min(seconds - lapTime, restSecs);
 
   const isLapPeriod = seconds <= lapTime;
   const isRestPeriod = !isLapPeriod;
 
   const lapSeconds = Math.min(seconds, lapTime);
-  const lapProgressWidthPercent = (lapSeconds / 60) * 100;
-  const restProgressWidthPercent = (restSecsPassed / 60) * 100;
+  const lapProgressWidthPercent = (lapSeconds / overallTime) * 100;
+  const restProgressWidthPercent = (restSecsPassed / overallTime) * 100;
 
   useEffect(() => {
     if (hasStarted && !intervalRef.current) {
       intervalRef.current = setInterval(() => {
         setSeconds((prevSecond) => {
           const nextSecond = prevSecond + 1;
-          return nextSecond > 60 ? 0 : nextSecond;
+          return nextSecond > overallTime ? 0 : nextSecond;
         });
       }, 1000);
     }
@@ -105,7 +154,7 @@ function App() {
       intervalRef.current = null;
       setSeconds(0);
     }
-  }, [hasStarted]);
+  }, [hasStarted, overallTime]);
 
   const secsClass = cn("text-9xl cursor-pointer mx-auto", {
     [`text-red-400`]: hasStarted && isLapPeriod,
@@ -117,9 +166,14 @@ function App() {
     setHasStarted(!hasStarted);
   };
 
-  const onSubmit: SettingsForm["props"]["onSubmit"] = ({ lapTime }) => {
+  const onSubmit: SettingsForm["props"]["onSubmit"] = ({
+    lapTime,
+    overallTime,
+  }) => {
     setShouldShowSettings(false);
     setLapTime(lapTime);
+    setOverallTime(overallTime);
+
     if (hasStarted) {
       setHasStarted(false);
     }
@@ -158,13 +212,16 @@ function App() {
         </div>
       </div>
       {shouldShowSettings && (
-        <div className="w-1/2 max-w-[400px] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-amber-100 rounded-lg bg-gray-800 p-4">
+        <div className="z-3 w-[90%] max-w-[400px] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-amber-100 rounded-lg bg-gray-800 p-4">
           <div className="text-center">Settings</div>
-          <SettingsForm
-            onEscape={() => setShouldShowSettings(false)}
-            onSubmit={onSubmit}
-            lapTimeInitial={lapTime}
-          />
+          <div className="mt-4">
+            <SettingsForm
+              onClose={() => setShouldShowSettings(false)}
+              onSubmit={onSubmit}
+              overallTimeInitial={overallTime}
+              lapTimeInitial={lapTime}
+            />
+          </div>
         </div>
       )}
     </div>
