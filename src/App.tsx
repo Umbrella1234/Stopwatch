@@ -150,7 +150,7 @@ function App() {
       intervalRef.current = setInterval(() => {
         setSeconds((prevSecond) => {
           const nextSecond = prevSecond + 1;
-          return nextSecond > overallTime ? 0 : nextSecond;
+          return nextSecond === overallTime ? 0 : nextSecond;
         });
       }, 1000);
     }
