@@ -1,12 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import classNames from "classnames";
-import { Button } from "./components/Button/Button";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SettingsForm } from "./components/SettingsForm/SettingsForm";
 
 const defaultPreset = { lapTime: 40, overallTime: 60 };
 
 function App() {
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [hasStarted, setHasStarted] = useState(false);
   const [shouldShowSettings, setShouldShowSettings] = useState(false);
@@ -40,11 +45,11 @@ function App() {
     }
   }, [hasStarted, overallTime]);
 
-  const secondsClassName = classNames("text-9xl cursor-pointer mx-auto", {
-    "text-red-400": hasStarted && isLapPeriod,
-    "text-blue-400": hasStarted && !isLapPeriod,
-    "text-gray-600": !hasStarted,
-  });
+  const timerColorClass = !hasStarted
+    ? "text-muted-foreground"
+    : isLapPeriod
+      ? "text-primary"
+      : "text-chart-1";
 
   const handleTimerClick = () => {
     setHasStarted(!hasStarted);
@@ -69,29 +74,33 @@ function App() {
   };
 
   return (
-    <div className="w-screen h-screen bg-gray-900 text-green-400 p-4 relative flex flex-col">
+    <div className="w-screen h-screen bg-background p-4 relative flex flex-col">
       <div className="flex">
-        <Button className="ml-auto" onClick={() => setShouldShowSettings(true)}>
+        <Button
+          className="ml-auto"
+          variant="outline"
+          onClick={() => setShouldShowSettings(true)}
+        >
           Settings
         </Button>
       </div>
       <div className="flex-grow flex flex-col justify-center">
-        <button onClick={handleTimerClick} className={secondsClassName}>
+        <button
+          onClick={handleTimerClick}
+          className={`text-9xl cursor-pointer mx-auto ${timerColorClass}`}
+        >
           {seconds}
         </button>
-        <div className="relative mt-4 h-2 w-full bg-green-50 rounded-2xl">
+        <div className="relative mt-4 h-2 w-full bg-muted rounded-full">
           <div
-            className={classNames(
-              "absolute top-0 left-0 h-full bg-red-400 rounded-l-2xl",
-              {
-                "rounded-r-2xl": isLapPeriod,
-              },
-            )}
+            className={`absolute top-0 left-0 h-full bg-destructive rounded-l-full ${
+              isLapPeriod ? "rounded-r-full" : ""
+            }`}
             style={{ width: `${lapProgressWidthPercent}%` }}
           />
           {!isLapPeriod && (
             <div
-              className="absolute top-0 h-full bg-blue-400 rounded-r-2xl"
+              className="absolute top-0 h-full bg-chart-1 rounded-r-full"
               style={{
                 width: `${restProgressWidthPercent}%`,
                 left: `${lapProgressWidthPercent}%`,
@@ -100,19 +109,22 @@ function App() {
           )}
         </div>
       </div>
-      {shouldShowSettings && (
-        <div className="w-[90%] max-w-[400px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 border-amber-100 rounded-lg bg-gray-800 p-4">
-          <div className="text-center">Settings</div>
-          <div className="mt-4">
-            <SettingsForm
-              onClose={handleCloseSettings}
-              onSubmit={handleSubmitSettings}
-              overallTimeInitial={overallTime}
-              lapTimeInitial={lapTime}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={shouldShowSettings}
+        onOpenChange={(open) => setShouldShowSettings(open)}
+      >
+        <DialogContent className="p-6">
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+          </DialogHeader>
+          <SettingsForm
+            onClose={handleCloseSettings}
+            onSubmit={handleSubmitSettings}
+            overallTimeInitial={overallTime}
+            lapTimeInitial={lapTime}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
