@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { SettingsForm } from "./components/SettingsForm/SettingsForm";
 
-const defaultPreset = { lapTime: 40, overallTime: 60 };
+const defaultPreset = { lapTime: 40, overallTime: 60, warmupTime: 5 };
 
 function App() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -18,6 +18,12 @@ function App() {
   const [overallTime, setOverallTime] = useState(defaultPreset.overallTime);
   const [lapTime, setLapTime] = useState(defaultPreset.lapTime);
   const [seconds, setSeconds] = useState(0);
+  const [warmupTime, setWarmupTime] = useState(defaultPreset.warmupTime);
+  const [warmupRemaining, setWarmupRemaining] = useState<number | null>(null);
+
+  const warmupRemainingRef = useRef<number | null>(null);
+
+  warmupRemainingRef.current = warmupRemaining;
 
   const restSeconds = overallTime - lapTime;
   const isLapPeriod = seconds <= lapTime;
@@ -31,7 +37,17 @@ function App() {
   useEffect(() => {
     if (hasStarted && !intervalRef.current) {
       intervalRef.current = setInterval(() => {
+        setWarmupRemaining((prev) => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            warmupRemainingRef.current = null;
+            return null;
+          }
+          warmupRemainingRef.current = prev - 1;
+          return prev - 1;
+        });
         setSeconds((prevSecond) => {
+          if (warmupRemainingRef.current !== null) return prevSecond;
           const nextSecond = prevSecond + 1;
           return nextSecond === overallTime ? 0 : nextSecond;
         });
@@ -42,17 +58,25 @@ function App() {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       setSeconds(0);
+      setWarmupRemaining(null);
     }
   }, [hasStarted, overallTime]);
 
-  const timerColorClass = !hasStarted
+  const timerColorClass = !hasStarted || warmupRemaining !== null
     ? "text-muted-foreground"
     : isLapPeriod
       ? "text-primary"
       : "text-chart-1";
 
   const handleTimerClick = () => {
-    setHasStarted(!hasStarted);
+    if (warmupRemaining !== null || hasStarted) {
+      setHasStarted(false);
+    } else {
+      if (warmupTime > 0) {
+        setWarmupRemaining(warmupTime);
+      }
+      setHasStarted(true);
+    }
   };
 
   const handleCloseSettings = () => setShouldShowSettings(false);
@@ -60,13 +84,16 @@ function App() {
   const handleSubmitSettings = ({
     lapTime: newLapTime,
     overallTime: newOverallTime,
+    warmupTime: newWarmupTime,
   }: {
     lapTime: number;
     overallTime: number;
+    warmupTime: number;
   }) => {
     setShouldShowSettings(false);
     setLapTime(newLapTime);
     setOverallTime(newOverallTime);
+    setWarmupTime(newWarmupTime);
 
     if (hasStarted) {
       setHasStarted(false);
@@ -75,7 +102,12 @@ function App() {
 
   return (
     <div className="w-screen h-screen bg-background p-4 relative flex flex-col">
-      <div className="flex">
+      <div className="flex items-center">
+        {warmupRemaining !== null && (
+          <div className="absolute left-1/2 -translate-x-1/2 text-6xl text-chart-1">
+            {warmupRemaining}
+          </div>
+        )}
         <Button
           className="ml-auto"
           variant="outline"
@@ -122,6 +154,7 @@ function App() {
             onSubmit={handleSubmitSettings}
             overallTimeInitial={overallTime}
             lapTimeInitial={lapTime}
+            warmupTimeInitial={warmupTime}
           />
         </DialogContent>
       </Dialog>

@@ -21,18 +21,20 @@ const presets = [
 export const SettingsForm: FC<SettingsFormProps> = ({
   lapTimeInitial,
   overallTimeInitial,
+  warmupTimeInitial,
   onSubmit,
   onClose,
 }) => {
   const [lapTime, setLapTime] = useState(lapTimeInitial);
   const [overallTime, setOverallTime] = useState(overallTimeInitial);
+  const [warmupTime, setWarmupTime] = useState(warmupTimeInitial);
 
   return (
     <form
       id="settings-form"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ lapTime, overallTime });
+        onSubmit({ lapTime, overallTime, warmupTime });
       }}
     >
       <div className="flex flex-col gap-4">
@@ -78,6 +80,16 @@ export const SettingsForm: FC<SettingsFormProps> = ({
             type="number"
             min={0}
             max={overallTime}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="warmup-time">Warmup time</Label>
+          <Input
+            id="warmup-time"
+            onChange={(e) => setWarmupTime(Number(e.target.value))}
+            value={warmupTime}
+            type="number"
+            min={0}
           />
         </div>
       </div>

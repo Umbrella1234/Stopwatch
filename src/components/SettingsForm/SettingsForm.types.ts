@@ -1,6 +1,11 @@
 export interface SettingsFormProps {
   lapTimeInitial: number;
   overallTimeInitial: number;
-  onSubmit: (formData: { lapTime: number; overallTime: number }) => void;
+  warmupTimeInitial: number;
+  onSubmit: (formData: {
+    lapTime: number;
+    overallTime: number;
+    warmupTime: number;
+  }) => void;
   onClose: () => void;
 }
