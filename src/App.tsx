@@ -20,8 +20,10 @@ function App() {
   const [seconds, setSeconds] = useState(0);
   const [warmupTime, setWarmupTime] = useState(defaultPreset.warmupTime);
   const [warmupRemaining, setWarmupRemaining] = useState<number | null>(null);
+  const [completedLaps, setCompletedLaps] = useState(0);
 
   const warmupRemainingRef = useRef<number | null>(null);
+  const prevSecondRef = useRef(0);
 
   warmupRemainingRef.current = warmupRemaining;
 
@@ -62,11 +64,28 @@ function App() {
     }
   }, [hasStarted, overallTime]);
 
-  const timerColorClass = !hasStarted || warmupRemaining !== null
-    ? "text-muted-foreground"
-    : isLapPeriod
-      ? "text-primary"
-      : "text-chart-1";
+  useEffect(() => {
+    if (!hasStarted) {
+      setCompletedLaps(0);
+      prevSecondRef.current = 0;
+      return;
+    }
+
+    if (
+      prevSecondRef.current === lapTime &&
+      seconds === (lapTime === overallTime ? 0 : lapTime + 1)
+    ) {
+      setCompletedLaps((prev) => prev + 1);
+    }
+    prevSecondRef.current = seconds;
+  }, [seconds, hasStarted, overallTime]);
+
+  const timerColorClass =
+    !hasStarted || warmupRemaining !== null
+      ? "text-muted-foreground"
+      : isLapPeriod
+        ? "text-primary"
+        : "text-chart-1";
 
   const handleTimerClick = () => {
     if (warmupRemaining !== null || hasStarted) {
@@ -108,6 +127,9 @@ function App() {
             {warmupRemaining}
           </div>
         )}
+        <div className="text-sm font-mono tabular-nums">
+          Laps:{completedLaps}
+        </div>
         <Button
           className="ml-auto"
           variant="outline"
