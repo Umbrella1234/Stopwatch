@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,11 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { SettingsForm } from "./components/SettingsForm/SettingsForm";
 
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 const defaultPreset = { lapTime: 40, overallTime: 60, warmupTime: 5 };
 
 function App() {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const [hasStarted, setHasStarted] = useState(false);
   const [shouldShowSettings, setShouldShowSettings] = useState(false);
   const [overallTime, setOverallTime] = useState(defaultPreset.overallTime);
@@ -21,11 +21,6 @@ function App() {
   const [warmupTime, setWarmupTime] = useState(defaultPreset.warmupTime);
   const [warmupRemaining, setWarmupRemaining] = useState<number | null>(null);
   const [completedLaps, setCompletedLaps] = useState(0);
-
-  const warmupRemainingRef = useRef<number | null>(null);
-  const prevSecondRef = useRef(0);
-
-  warmupRemainingRef.current = warmupRemaining;
 
   const restSeconds = overallTime - lapTime;
   const isLapPeriod = seconds <= lapTime;
@@ -37,48 +32,47 @@ function App() {
   const restProgressWidthPercent = (restSecondsPassed / overallTime) * 100;
 
   useEffect(() => {
-    if (hasStarted && !intervalRef.current) {
-      intervalRef.current = setInterval(() => {
-        setWarmupRemaining((prev) => {
-          if (prev === null) return null;
-          if (prev <= 1) {
-            warmupRemainingRef.current = null;
-            return null;
-          }
-          warmupRemainingRef.current = prev - 1;
-          return prev - 1;
-        });
-        setSeconds((prevSecond) => {
-          if (warmupRemainingRef.current !== null) return prevSecond;
-          const nextSecond = prevSecond + 1;
-          return nextSecond === overallTime ? 0 : nextSecond;
-        });
-      }, 1000);
-    }
-
-    if (!hasStarted && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (!hasStarted) {
       setSeconds(0);
       setWarmupRemaining(null);
-    }
-  }, [hasStarted, overallTime]);
-
-  useEffect(() => {
-    if (!hasStarted) {
       setCompletedLaps(0);
-      prevSecondRef.current = 0;
       return;
     }
 
-    if (
-      prevSecondRef.current === lapTime &&
-      seconds === (lapTime === overallTime ? 0 : lapTime + 1)
-    ) {
-      setCompletedLaps((prev) => prev + 1);
-    }
-    prevSecondRef.current = seconds;
-  }, [seconds, hasStarted, overallTime]);
+    let active = true;
+    let warmupLeft = warmupTime;
+    let tick = 0;
+
+    (async () => {
+      if (warmupLeft > 0) {
+        do {
+          await delay(1000);
+          if (!active) return;
+          warmupLeft--;
+          setWarmupRemaining(warmupLeft || null);
+        } while (active && warmupLeft > 0);
+      }
+
+      while (active) {
+        await delay(1000);
+        if (!active) return;
+
+        const prevTick = tick;
+        tick = tick + 1 === overallTime ? 0 : tick + 1;
+        setSeconds(tick);
+
+        if (prevTick === lapTime) {
+          setCompletedLaps((prev) => prev + 1);
+        } else if (lapTime === overallTime && tick === 0) {
+          setCompletedLaps((prev) => prev + 1);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [hasStarted, overallTime, lapTime, warmupTime]);
 
   const timerColorClass =
     !hasStarted || warmupRemaining !== null
