@@ -1,3 +1,3 @@
-The first stopwatch on the web withput ads.
+Stop being a fat neckbeard. Use my stopwatch.
 
 https://umbrella1234.github.io/Stopwatch/
