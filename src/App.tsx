@@ -6,73 +6,40 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { SettingsForm } from "./components/SettingsForm/SettingsForm";
+import {
+  defaultSettings,
+  getStopwatchView,
+  type StopwatchPhase,
+  type TimerSettings,
+} from "./stopwatch";
 
-const defaultPreset = { lapTime: 40, overallTime: 60, warmupTime: 5 };
-
-type StopwatchView = {
-  seconds: number;
-  completedLaps: number;
-  warmupRemaining: number | null;
-};
-
-type StopwatchViewParams = {
-  elapsedMs: number | null;
-  lapTime: number;
-  overallTime: number;
-  warmupTime: number;
-};
-
-function getStopwatchView({
-  elapsedMs,
-  lapTime,
-  overallTime,
-  warmupTime,
-}: StopwatchViewParams): StopwatchView {
-  if (elapsedMs === null) {
-    return { seconds: 0, completedLaps: 0, warmupRemaining: null };
-  }
-
-  const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
-  const warmupRemaining = warmupTime - elapsedSec;
-
-  if (warmupRemaining > 0) {
-    return { seconds: 0, completedLaps: 0, warmupRemaining };
-  }
-
-  const mainElapsedSec = Math.max(0, elapsedSec - warmupTime);
-  const seconds = mainElapsedSec % overallTime;
-  const completedLaps =
-    Math.floor(mainElapsedSec / overallTime) +
-    (lapTime < overallTime && mainElapsedSec % overallTime >= lapTime + 1 ? 1 : 0);
-
-  return { seconds, completedLaps, warmupRemaining: null };
-}
+const timerColorClassByPhase = {
+  idle: "text-muted-foreground",
+  warmup: "text-muted-foreground",
+  lap: "text-primary",
+  rest: "text-chart-1",
+} satisfies Record<StopwatchPhase, string>;
 
 function App() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const [shouldShowSettings, setShouldShowSettings] = useState(false);
-  const [overallTime, setOverallTime] = useState(defaultPreset.overallTime);
-  const [lapTime, setLapTime] = useState(defaultPreset.lapTime);
-  const [warmupTime, setWarmupTime] = useState(defaultPreset.warmupTime);
+  const [settings, setSettings] = useState(defaultSettings);
 
   const elapsedMs = startedAt === null ? null : now - startedAt;
-  const { seconds, completedLaps, warmupRemaining } = getStopwatchView({
-    elapsedMs,
-    lapTime,
-    overallTime,
-    warmupTime,
-  });
+  const view = getStopwatchView({ elapsedMs, settings });
+  const { phase, seconds, completedLaps, warmupRemaining } = view;
 
-  const restSeconds = overallTime - lapTime;
-  const isLapPeriod = seconds <= lapTime;
+  const restSeconds = settings.overallTime - settings.lapTime;
+  const isLapPeriod = phase !== "rest";
 
-  const lapSeconds = Math.min(seconds, lapTime);
-  const restSecondsPassed = Math.min(seconds - lapTime, restSeconds);
+  const lapSeconds = Math.min(seconds, settings.lapTime);
+  const restSecondsPassed = Math.min(seconds - settings.lapTime, restSeconds);
 
-  const lapProgressWidthPercent = (lapSeconds / overallTime) * 100;
-  const restProgressWidthPercent = (restSecondsPassed / overallTime) * 100;
+  const lapProgressWidthPercent = (lapSeconds / settings.overallTime) * 100;
+  const restProgressWidthPercent = (restSecondsPassed / settings.overallTime) * 100;
 
   useEffect(() => {
     if (startedAt !== null) {
@@ -95,56 +62,42 @@ function App() {
     }
   }, [startedAt]);
 
-  const timerColorClass =
-    startedAt === null || warmupRemaining !== null
-      ? "text-muted-foreground"
-      : isLapPeriod
-        ? "text-primary"
-        : "text-chart-1";
+  const timerColorClass = timerColorClassByPhase[phase];
 
   const handleTimerClick = () => {
-    if (startedAt !== null) {
-      setStartedAt(null);
-    } else {
+    if (startedAt === null) {
       const timestamp = Date.now();
       setStartedAt(timestamp);
       setNow(timestamp);
+    } else {
+      setStartedAt(null);
     }
   };
 
   const handleCloseSettings = () => setShouldShowSettings(false);
 
-  const handleSubmitSettings = ({
-    lapTime: newLapTime,
-    overallTime: newOverallTime,
-    warmupTime: newWarmupTime,
-  }: {
-    lapTime: number;
-    overallTime: number;
-    warmupTime: number;
-  }) => {
+  const handleSubmitSettings = (next: TimerSettings) => {
     setShouldShowSettings(false);
-    setLapTime(newLapTime);
-    setOverallTime(newOverallTime);
-    setWarmupTime(newWarmupTime);
-
-    if (startedAt !== null) {
-      setStartedAt(null);
-    }
+    setSettings(next);
+    setStartedAt(null);
   };
 
   return (
     <div className="w-screen h-screen bg-background p-4 relative flex flex-col">
       <div className="flex items-center">
-        {warmupRemaining !== null && (
-          <div className="absolute left-1/2 -translate-x-1/2 text-6xl text-chart-1">
+        {phase === "warmup" && (
+          <div
+            data-testid="warmup-countdown"
+            className="absolute left-1/2 -translate-x-1/2 text-6xl text-chart-1"
+          >
             {warmupRemaining}
           </div>
         )}
-        <div className="text-sm font-mono tabular-nums">
+        <div data-testid="laps" className="text-sm font-mono tabular-nums">
           Laps:{completedLaps}
         </div>
         <Button
+          data-testid="open-settings"
           className="ml-auto"
           variant="outline"
           onClick={() => setShouldShowSettings(true)}
@@ -154,16 +107,18 @@ function App() {
       </div>
       <div className="flex-grow flex flex-col justify-center">
         <button
+          data-testid="timer"
           onClick={handleTimerClick}
-          className={`text-9xl cursor-pointer mx-auto ${timerColorClass}`}
+          className={cn("text-9xl cursor-pointer mx-auto", timerColorClass)}
         >
           {seconds}
         </button>
         <div className="relative mt-4 h-2 w-full bg-muted rounded-full">
           <div
-            className={`absolute top-0 left-0 h-full bg-destructive rounded-l-full ${
-              isLapPeriod ? "rounded-r-full" : ""
-            }`}
+            className={cn(
+              "absolute top-0 left-0 h-full bg-destructive rounded-l-full",
+              isLapPeriod && "rounded-r-full",
+            )}
             style={{ width: `${lapProgressWidthPercent}%` }}
           />
           {!isLapPeriod && (
@@ -177,20 +132,15 @@ function App() {
           )}
         </div>
       </div>
-      <Dialog
-        open={shouldShowSettings}
-        onOpenChange={(open) => setShouldShowSettings(open)}
-      >
-        <DialogContent className="p-6">
+      <Dialog open={shouldShowSettings} onOpenChange={setShouldShowSettings}>
+        <DialogContent data-testid="settings-dialog" className="p-6">
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
           </DialogHeader>
           <SettingsForm
+            initialSettings={settings}
             onClose={handleCloseSettings}
             onSubmit={handleSubmitSettings}
-            overallTimeInitial={overallTime}
-            lapTimeInitial={lapTime}
-            warmupTimeInitial={warmupTime}
           />
         </DialogContent>
       </Dialog>

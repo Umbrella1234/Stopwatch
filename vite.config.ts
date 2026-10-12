@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "url";
@@ -13,5 +13,10 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "."),
     },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    exclude: [...configDefaults.exclude, "**/.kilo/**", "e2e/**"],
   },
 });

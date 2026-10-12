@@ -12,42 +12,42 @@ import {
 } from "@/components/ui/select";
 
 const presets = [
-  { lapTime: 45, overallTime: 45, label: "45 secs" },
-  { lapTime: 60, overallTime: 60, label: "1 min" },
-  { lapTime: 90, overallTime: 90, label: "1 min 30 secs" },
-  { lapTime: 120, overallTime: 120, label: "2 min" },
-  { lapTime: 150, overallTime: 150, label: "2 min 30 secs" },
-  { lapTime: 180, overallTime: 180, label: "3 min" },
-] as const;
+  { value: "45", lapTime: 45, overallTime: 45, label: "45 secs" },
+  { value: "60", lapTime: 60, overallTime: 60, label: "1 min" },
+  { value: "90", lapTime: 90, overallTime: 90, label: "1 min 30 secs" },
+  { value: "120", lapTime: 120, overallTime: 120, label: "2 min" },
+  { value: "150", lapTime: 150, overallTime: 150, label: "2 min 30 secs" },
+  { value: "180", lapTime: 180, overallTime: 180, label: "3 min" },
+];
+
+const presetsByValue = new Map(presets.map((preset) => [preset.value, preset]));
 
 export const SettingsForm: FC<SettingsFormProps> = ({
-  lapTimeInitial,
-  overallTimeInitial,
-  warmupTimeInitial,
+  initialSettings,
   onSubmit,
   onClose,
 }) => {
-  const [lapTime, setLapTime] = useState(lapTimeInitial);
-  const [overallTime, setOverallTime] = useState(overallTimeInitial);
-  const [warmupTime, setWarmupTime] = useState(warmupTimeInitial);
+  const [draft, setDraft] = useState(initialSettings);
 
   return (
     <form
-      id="settings-form"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ lapTime, overallTime, warmupTime });
+        onSubmit(draft);
       }}
     >
       <div className="flex flex-col gap-4">
         <div className="grid gap-2">
           <Label>Preset</Label>
-          <Select
+          <Select<string>
             onValueChange={(value) => {
-              const preset = presets.find((p) => p.label === value);
+              const preset = value === null ? undefined : presetsByValue.get(value);
               if (preset) {
-                setLapTime(preset.lapTime);
-                setOverallTime(preset.overallTime);
+                setDraft({
+                  ...draft,
+                  lapTime: preset.lapTime,
+                  overallTime: preset.overallTime,
+                });
               }
             }}
           >
@@ -56,7 +56,7 @@ export const SettingsForm: FC<SettingsFormProps> = ({
             </SelectTrigger>
             <SelectContent>
               {presets.map((preset) => (
-                <SelectItem key={preset.label} value={preset.label}>
+                <SelectItem key={preset.value} value={preset.value}>
                   {preset.label}
                 </SelectItem>
               ))}
@@ -66,30 +66,37 @@ export const SettingsForm: FC<SettingsFormProps> = ({
         <div className="grid gap-2">
           <Label htmlFor="overall-time">Overall time</Label>
           <Input
+            data-testid="overall-time"
             id="overall-time"
-            onChange={(e) => setOverallTime(Number(e.target.value))}
-            value={overallTime}
+            onChange={(e) =>
+              setDraft({ ...draft, overallTime: Number(e.target.value) })
+            }
+            value={draft.overallTime}
             type="number"
-            min={0}
+            min={1}
           />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="lap-time">Lap time</Label>
           <Input
+            data-testid="lap-time"
             id="lap-time"
-            onChange={(e) => setLapTime(Number(e.target.value))}
-            value={lapTime}
+            onChange={(e) => setDraft({ ...draft, lapTime: Number(e.target.value) })}
+            value={draft.lapTime}
             type="number"
             min={0}
-            max={overallTime}
+            max={draft.overallTime}
           />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="warmup-time">Warmup time</Label>
           <Input
+            data-testid="warmup-time"
             id="warmup-time"
-            onChange={(e) => setWarmupTime(Number(e.target.value))}
-            value={warmupTime}
+            onChange={(e) =>
+              setDraft({ ...draft, warmupTime: Number(e.target.value) })
+            }
+            value={draft.warmupTime}
             type="number"
             min={0}
           />
@@ -100,7 +107,9 @@ export const SettingsForm: FC<SettingsFormProps> = ({
           <Button onClick={onClose} type="button" variant="outline">
             Close
           </Button>
-          <Button type="submit">Apply</Button>
+          <Button data-testid="apply-settings" type="submit">
+            Apply
+          </Button>
         </div>
       </div>
     </form>

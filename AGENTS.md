@@ -1,6 +1,6 @@
 ## Project
 
-Simple single-page React stopwatch with configurable lap/rest intervals. No routing, no state management library, no tests.
+Simple single-page React stopwatch with configurable lap/rest intervals. No routing, no state management library.
 
 - **Stack**: React 19, TypeScript 5.8, Vite 7, Tailwind CSS v4
 - **Deployed at**: https://umbrella1234.github.io/Stopwatch/ (GitHub Pages)
@@ -12,6 +12,8 @@ Simple single-page React stopwatch with configurable lap/rest intervals. No rout
 | `npm run dev` | Vite dev server |
 | `npm run build` | `tsc -b && vite build` |
 | `npm run lint` | `eslint .` (flat config, no fix) |
+| `npm test` | `vitest run` (single pass) |
+| `npm run test:watch` | `vitest` (watch mode) |
 | `npm run preview` | `vite preview` (serve built output) |
 | `npm run deploy` | `npm run build && gh-pages -d dist` |
 
@@ -21,7 +23,7 @@ Build uses TypeScript project references (`tsconfig.json` → `tsconfig.app.json
 
 - **Component structure**: folder name matches component name; props interface in `ComponentName.types.ts`, exported
 - **Component definition**: `const Foo: FC<FooProps> = (props) => ...`
-- **Classnames**: use the `classnames` library for conditional classes
+- **Classnames**: use the `cn` helper from `@/lib/utils` for conditional classes
 - **Styling**: Tailwind CSS v4 (`@import "tailwindcss"` in CSS — no `tailwind.config.js`)
 - **TypeScript**: `strict: true`, `verbatimModuleSyntax: true` (use `type` keyword for type-only imports), `erasableSyntaxOnly: true` (no enums/namespaces/parameter properties)
 - **Deploy base**: Vite `base: "/Stopwatch/"` — internal links and assets must account for this
@@ -44,6 +46,13 @@ Build uses TypeScript project references (`tsconfig.json` → `tsconfig.app.json
 - **Generics**: `Array<Type>`, never `Type[]`.
 - **Function params**: object pattern with a named type for >2 parameters. Single and double positional params are acceptable.
 - **Null/undefined**: handle both explicitly.
+
+### Testing
+
+- **Stack**: Vitest + React Testing Library under jsdom; config in `vite.config.ts`, setup in `src/test/setup.ts`
+- **Location**: colocated with the source as `*.test.ts(x)`
+- **Style**: behavior-level via public seams (props, rendered DOM, user events) — never assert on internals
+- **Timers**: fake timers via `vi.useFakeTimers`; wrap `vi.advanceTimersByTime` in `act` and pass `advanceTimers: vi.advanceTimersByTime` to `userEvent.setup()`
 
 ### Comments
 

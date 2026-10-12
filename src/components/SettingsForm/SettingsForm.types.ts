@@ -1,11 +1,7 @@
+import type { TimerSettings } from "../../stopwatch";
+
 export interface SettingsFormProps {
-  lapTimeInitial: number;
-  overallTimeInitial: number;
-  warmupTimeInitial: number;
-  onSubmit: (formData: {
-    lapTime: number;
-    overallTime: number;
-    warmupTime: number;
-  }) => void;
+  initialSettings: TimerSettings;
+  onSubmit: (settings: TimerSettings) => void;
   onClose: () => void;
 }
