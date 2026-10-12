@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/select";
 
 const presets = [
-  { lapTime: 40, overallTime: 60, label: "40 work 20 rest" },
-  { lapTime: 45, overallTime: 60, label: "40 work 15 rest" },
-  { lapTime: 60, overallTime: 60, label: "60 work" },
-  { lapTime: 90, overallTime: 90, label: "90 work" },
+  { lapTime: 45, overallTime: 45, label: "45 secs" },
+  { lapTime: 60, overallTime: 60, label: "1 min" },
+  { lapTime: 90, overallTime: 90, label: "1 min 30 secs" },
+  { lapTime: 120, overallTime: 120, label: "2 min" },
+  { lapTime: 150, overallTime: 150, label: "2 min 30 secs" },
+  { lapTime: 180, overallTime: 180, label: "3 min" },
 ] as const;
 
 export const SettingsForm: FC<SettingsFormProps> = ({
